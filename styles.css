@@ -277,3 +277,6 @@ body {
   .composer-wrap { padding: 10px 12px calc(12px + env(safe-area-inset-bottom)); }
   .btn-send, .btn-stop { padding: 12px 16px; }
 }
+
+.katex-display { overflow-x: auto; padding: 4px 0; }
+.bubble .katex { font-size: 1.05em; }
