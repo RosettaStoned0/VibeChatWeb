@@ -4,7 +4,7 @@ const assert = require('assert');
 const http = require('http');
 const app = require('../app.js');
 
-const { PROVIDERS, buildRequest, extractDelta, extractUsage, streamChat, renderMarkdown, escapeHtml, extractArtifacts, buildArtifactDoc } = app;
+const { PROVIDERS, buildRequest, extractDelta, extractUsage, streamChat, renderMarkdown, escapeHtml, extractArtifacts, buildArtifactDoc, preprocessArtifactCode } = app;
 
 let passed = 0;
 function ok(name) { passed++; console.log('  ✓ ' + name); }
@@ -249,6 +249,16 @@ async function main() {
     assert.ok(docTs.includes('isTSX:true'));
     assert.ok(!docTs.includes('import React'));
     ok('아티팩트 추출 + 캔버스 문서 생성 (import 제거, export default 변환, TSX preset)');
+    const hookSrc = "import { useRef, useState } from 'react';\nimport React, { useEffect } from \"react\";\nexport default function App() { return <div/>; }";
+    const pre = preprocessArtifactCode(hookSrc);
+    assert.ok(pre.includes('window.React'), 'react named import → window.React 매핑');
+    assert.ok(pre.includes('useRef') && pre.includes('useEffect'));
+    assert.ok(!pre.includes('from'), 'react import 원문 제거');
+    assert.ok(pre.includes('const __App ='));
+    assert.ok(!pre.includes('export default'));
+    const docHooks = buildArtifactDoc(hookSrc, 'jsx');
+    assert.ok(docHooks.includes('window.React'));
+    ok('preprocessArtifactCode: react/react-dom import 매핑, 나머지 import 제거, export default 변환');
   }
 
   console.log('\n모든 테스트 통과: ' + passed + '개');
