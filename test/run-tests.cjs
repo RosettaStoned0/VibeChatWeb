@@ -108,6 +108,10 @@ async function main() {
     assert.deepStrictEqual(extractUsage('openai', { usage: { prompt_tokens: 3, completion_tokens: 2 } }), { input: 3, output: 2 });
     assert.deepStrictEqual(extractUsage('gemini', { usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 7 } }), { input: 5, output: 7 });
     assert.deepStrictEqual(extractUsage('ollama', { done: true, prompt_eval_count: 4, eval_count: 6 }), { input: 4, output: 6 });
+    assert.strictEqual(extractDelta('openai', { choices: [{ delta: { content: [{ type: 'text', text: '안' }, { type: 'text', text: '녕' }] } }] }), '안녕');
+    assert.strictEqual(extractDelta('openai', { choices: [{ delta: { content: { text: 'hi' } } }] }), 'hi');
+    assert.strictEqual(extractDelta('openai', { choices: [{ delta: { content: 'a', reasoning_content: '생각' } }] }), '생각a');
+    assert.strictEqual(extractDelta('openai', { choices: [{ delta: { role: 'assistant' } }] }), '');
     ok('제공자별 델타/사용량 추출 정상');
   }
 
