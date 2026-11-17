@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vibe Chat">
+<title>Vibe Chat — 내 API 키로 쓰는 AI 채팅</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">⚡ Vibe Chat</div>
+      <button id="new-chat-btn" class="btn btn-primary">+ 새 대화</button>
+    </div>
+    <div id="conversation-list" class="conversation-list"></div>
+    <div class="sidebar-footer">
+      <button id="settings-btn" class="btn btn-ghost">⚙ 설정</button>
+    </div>
+  </aside>
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <button id="menu-btn" class="btn btn-ghost menu-btn" type="button" title="대화 목록">☰</button>
+      <span id="provider-badge" class="badge"></span>
+      <span id="model-name" class="model-name"></span>
+    </header>
+
+    <div id="messages" class="messages"></div>
+
+    <div class="composer-wrap">
+      <div id="suggestions" class="suggestions"></div>
+      <div class="composer">
+        <textarea id="input" rows="1" placeholder="메시지를 입력하세요 (Enter: 전송, Shift+Enter: 줄바꿈)"></textarea>
+        <button id="send-btn" class="btn btn-send" title="전송">➤</button>
+        <button id="stop-btn" class="btn btn-stop hidden" title="생성 중지">■</button>
+      </div>
+      <div class="composer-note">API 키는 이 브라우저에만 저장되고, 선택한 제공자의 API로만 전송됩니다.</div>
+    </div>
+  </main>
+</div>
+
+<div id="settings-modal" class="modal-backdrop hidden">
+  <div class="modal-card">
+    <h2>설정</h2>
+
+    <label for="set-provider">제공자 (Provider)</label>
+    <select id="set-provider"></select>
+
+    <label for="set-apikey">API 키 <a id="key-link" class="hint" href="#" target="_blank" rel="noopener"></a></label>
+    <div class="key-row">
+      <input type="password" id="set-apikey" placeholder="sk-..." autocomplete="off">
+      <button id="toggle-key" class="btn btn-ghost" type="button">보기</button>
+    </div>
+
+    <label for="set-model">모델</label>
+    <input id="set-model" list="model-list" placeholder="모델 이름" autocomplete="off">
+    <datalist id="model-list"></datalist>
+
+    <label for="set-baseurl">Base URL (선택)</label>
+    <input id="set-baseurl" placeholder="비워두면 제공자 기본값 사용" autocomplete="off">
+
+    <label for="set-system">시스템 프롬프트 (선택)</label>
+    <textarea id="set-system" rows="3" placeholder="예: 당신은 친절한 한국어 조수입니다."></textarea>
+
+    <div class="modal-actions">
+      <button id="test-conn" class="btn btn-ghost" type="button">연결 테스트</button>
+      <button id="clear-key" class="btn btn-ghost" type="button">키 삭제</button>
+      <span class="spacer"></span>
+      <button id="close-settings" class="btn btn-ghost" type="button">닫기</button>
+      <button id="save-settings" class="btn btn-primary" type="button">저장</button>
+    </div>
+    <div id="settings-status" class="status"></div>
+
+    <p class="security-note">🔒 이 앱에는 서버가 없습니다. API 키는 브라우저의 localStorage에만 저장되며, 위에서 선택한 제공자의 API 엔드포인트로만 직접 전송됩니다.</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
