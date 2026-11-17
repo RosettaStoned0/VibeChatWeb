@@ -131,11 +131,24 @@ function buildRequest(provider, settings, history) {
   throw new Error('지원하지 않는 제공자 타입: ' + p.type);
 }
 
+function contentToText(content) {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map(p => (typeof p === 'string' ? p : (p && p.text) || '')).join('');
+  }
+  if (typeof content === 'object') return content.text || '';
+  return String(content);
+}
+
 function extractDelta(provider, obj) {
   const t = PROVIDERS[provider].type;
   if (t === 'openai') {
     const c = obj && obj.choices && obj.choices[0];
-    return (c && c.delta && c.delta.content) || '';
+    if (!c || !c.delta) return '';
+    const reasoning = typeof c.delta.reasoning_content === 'string' ? c.delta.reasoning_content
+      : (typeof c.delta.reasoning === 'string' ? c.delta.reasoning : '');
+    return reasoning + contentToText(c.delta.content);
   }
   if (t === 'anthropic') {
     if (obj.type === 'content_block_delta' && obj.delta) return obj.delta.text || '';
@@ -208,7 +221,8 @@ async function streamChat(provider, settings, history, handlers) {
       if (isNdjson) {
         try {
           const o = JSON.parse(line);
-          onDelta(extractDelta(provider, o));
+          const d = extractDelta(provider, o);
+          onDelta(typeof d === 'string' ? d : contentToText(d));
           const u = extractUsage(provider, o);
           if (u) onUsage(u);
         } catch (e) { /* 부분 JSON 무시 */ }
@@ -219,7 +233,8 @@ async function streamChat(provider, settings, history, handlers) {
       if (data === '[DONE]') continue;
       try {
         const o = JSON.parse(data);
-        onDelta(extractDelta(provider, o));
+        const d = extractDelta(provider, o);
+        onDelta(typeof d === 'string' ? d : contentToText(d));
         const u = extractUsage(provider, o);
         if (u) onUsage(u);
       } catch (e) { /* 부분 JSON 무시 */ }
@@ -301,7 +316,7 @@ function renderMarkdown(src) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PROVIDERS, DEFAULT_SETTINGS, buildRequest, extractDelta, extractUsage, streamChat, escapeHtml, renderMarkdown };
+  module.exports = { PROVIDERS, DEFAULT_SETTINGS, buildRequest, extractDelta, extractUsage, streamChat, escapeHtml, renderMarkdown, contentToText };
 }
 
 if (typeof document !== 'undefined') {
