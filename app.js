@@ -828,7 +828,12 @@ function init() {
     els.canvasIframe.srcdoc = buildArtifactDoc(a.code, a.lang);
     els.canvasPanel.classList.add('open');
   }
+  function closeCanvas() { els.canvasPanel.classList.remove('open'); }
   els.canvasBtn.addEventListener('click', () => {
+    if (els.canvasPanel.classList.contains('open')) {
+      closeCanvas();
+      return;
+    }
     els.canvasPanel.classList.add('open');
     if (currentArtifact) {
       openCanvas(currentArtifact);
@@ -839,7 +844,18 @@ function init() {
       }
     }
   });
-  els.canvasClose.addEventListener('click', () => els.canvasPanel.classList.remove('open'));
+  els.canvasClose.addEventListener('click', closeCanvas);
+  els.canvasPanel.addEventListener('click', (ev) => {
+    if (ev.target.closest('#canvas-close')) closeCanvas();
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      closeCanvas();
+      els.sidebar.classList.remove('open');
+      els.sidebarBackdrop.classList.remove('show');
+      if (!els.modal.classList.contains('hidden')) els.modal.classList.add('hidden');
+    }
+  });
   els.closeSettings.addEventListener('click', () => els.modal.classList.add('hidden'));
   els.modal.addEventListener('click', (ev) => { if (ev.target === els.modal) els.modal.classList.add('hidden'); });
   els.saveSettings.addEventListener('click', saveSettingsFromModal);
