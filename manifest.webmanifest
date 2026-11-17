@@ -1,0 +1,13 @@
+{
+  "name": "Vibe Chat",
+  "short_name": "Vibe Chat",
+  "description": "내 API 키로 쓰는 AI 채팅",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
