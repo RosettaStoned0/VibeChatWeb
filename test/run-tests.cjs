@@ -4,7 +4,7 @@ const assert = require('assert');
 const http = require('http');
 const app = require('../app.js');
 
-const { PROVIDERS, buildRequest, extractDelta, extractUsage, streamChat, renderMarkdown, escapeHtml } = app;
+const { PROVIDERS, buildRequest, extractDelta, extractUsage, streamChat, renderMarkdown, escapeHtml, extractArtifacts, buildArtifactDoc } = app;
 
 let passed = 0;
 function ok(name) { passed++; console.log('  ✓ ' + name); }
@@ -230,6 +230,25 @@ async function main() {
   {
     assert.strictEqual(escapeHtml('<b>&"'), '&lt;b&gt;&amp;&quot;');
     ok('escapeHtml 정상');
+  }
+
+  console.log('캔버스 아티팩트 테스트');
+  {
+    const src = '설명\n\n```jsx\nexport default function App() { return <h1>hi</h1>; }\n```\n\n```js\nconsole.log(1);\n```\n';
+    const arts = extractArtifacts(src);
+    assert.strictEqual(arts.length, 1);
+    assert.strictEqual(arts[0].lang, 'jsx');
+    assert.ok(arts[0].code.includes('export default'));
+    const doc = buildArtifactDoc(arts[0].code, 'jsx');
+    assert.ok(doc.includes('react@18.3.1/umd/react.production.min.js'));
+    assert.ok(doc.includes('react-dom@18.3.1'));
+    assert.ok(doc.includes('@babel/standalone@7.26.4/babel.min.js'));
+    assert.ok(doc.includes('const __App ='));
+    assert.ok(!doc.includes('export default'));
+    const docTs = buildArtifactDoc('import React from "react";\nexport default () => <div/>;', 'tsx');
+    assert.ok(docTs.includes('isTSX:true'));
+    assert.ok(!docTs.includes('import React'));
+    ok('아티팩트 추출 + 캔버스 문서 생성 (import 제거, export default 변환, TSX preset)');
   }
 
   console.log('\n모든 테스트 통과: ' + passed + '개');

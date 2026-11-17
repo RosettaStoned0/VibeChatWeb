@@ -34,6 +34,8 @@
       <button id="menu-btn" class="btn btn-ghost menu-btn" type="button" title="대화 목록">☰</button>
       <span id="provider-badge" class="badge"></span>
       <span id="model-name" class="model-name"></span>
+      <span class="spacer"></span>
+      <button id="canvas-btn" class="btn btn-ghost" type="button" title="React 캔버스 열기">🎨 캔버스</button>
     </header>
 
     <div id="messages" class="messages"></div>
@@ -47,6 +49,13 @@
       </div>
       <div class="composer-note">API 키는 이 브라우저에만 저장되고, 선택한 제공자의 API로만 전송됩니다.</div>
     </div>
+    <aside id="canvas-panel" class="canvas-panel">
+      <div class="canvas-head">
+        <span id="canvas-title">React 캔버스</span>
+        <button id="canvas-close" class="btn btn-ghost" type="button">✕ 닫기</button>
+      </div>
+      <iframe id="canvas-iframe" class="canvas-iframe" sandbox="allow-scripts" title="React canvas"></iframe>
+    </aside>
   </main>
 </div>
 

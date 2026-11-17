@@ -50,6 +50,15 @@ const PROVIDERS = {
 
 const DEFAULT_SETTINGS = { provider: 'openai', apiKey: '', baseUrl: '', model: '', systemPrompt: '' };
 
+const ARTIFACT_LANGS = ['jsx', 'tsx', 'react', 'react-jsx'];
+let artifactCounter = 0;
+
+const CANVAS_CDN = {
+  react: 'https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js',
+  reactDom: 'https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js',
+  babel: 'https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js'
+};
+
 function buildRequest(provider, settings, history) {
   const p = PROVIDERS[provider];
   if (!p) throw new Error('알 수 없는 제공자: ' + provider);
@@ -260,7 +269,7 @@ function renderInline(escaped) {
   return s;
 }
 
-function renderMarkdown(src) {
+function renderMarkdown(src, onArtifact) {
   const lines = String(src).split('\n');
   let html = '';
   let i = 0;
@@ -269,8 +278,15 @@ function renderMarkdown(src) {
 
   const closeList = () => { if (list) { html += '</' + list + '>'; list = null; } };
   const flushCode = () => {
-    html += '<div class="code-block"><div class="code-head"><span>' + escapeHtml(codeLang || 'code') +
-      '</span><button class="copy-btn" type="button" data-copy="code">복사</button></div><pre><code>' +
+    const lang = (codeLang || 'code').toLowerCase();
+    let btns = '<button class="copy-btn" type="button" data-copy="code">복사</button>';
+    if (onArtifact && ARTIFACT_LANGS.includes(lang)) {
+      const id = 'a' + (++artifactCounter);
+      onArtifact(id, lang, codeLines.join('\n'));
+      btns = '<button class="canvas-btn" type="button" data-artifact="' + id + '">▶ 캔버스</button>' + btns;
+    }
+    html += '<div class="code-block"><div class="code-head"><span>' + escapeHtml(lang) +
+      '</span><div class="code-actions">' + btns + '</div></div><pre><code>' +
       escapeHtml(codeLines.join('\n')) + '</code></pre></div>';
   };
 
@@ -315,6 +331,42 @@ function renderMarkdown(src) {
   return html;
 }
 
+function extractArtifacts(src) {
+  const out = [];
+  const re = /```(\w*)[ \t]*\n([\s\S]*?)```/g;
+  let m;
+  while ((m = re.exec(String(src)))) {
+    const lang = (m[1] || '').toLowerCase();
+    if (ARTIFACT_LANGS.includes(lang)) out.push({ lang, code: m[2].replace(/\n$/, '') });
+  }
+  return out;
+}
+
+function buildArtifactDoc(code, lang) {
+  const isTs = lang === 'tsx';
+  const cleaned = String(code)
+    .replace(/^import\s[^;]*;?[ \t]*$/gm, '')
+    .replace(/export\s+default\s+/, 'const __App = ');
+  const presets = isTs ? '[["typescript",{isTSX:true,allExtensions:true}],"react"]' : '["react"]';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<style>body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#111}#root{padding:16px}pre.err{color:#c00;white-space:pre-wrap;padding:16px}</style></head><body>' +
+    '<div id="root"></div>' +
+    '<script src="' + CANVAS_CDN.react + '"></script>' +
+    '<script src="' + CANVAS_CDN.reactDom + '"></script>' +
+    '<script src="' + CANVAS_CDN.babel + '"></script>' +
+    '<script>' +
+    'window.addEventListener("load",function(){' +
+    'try{' +
+    'var code=' + JSON.stringify(cleaned) + ';' +
+    'var out=Babel.transform(code,{presets:' + presets + '}).code;' +
+    'var s=document.createElement("script");' +
+    's.textContent=out+"\\n;ReactDOM.createRoot(document.getElementById(\'root\')).render(React.createElement(__App));";' +
+    'document.body.appendChild(s);' +
+    '}catch(e){var p=document.createElement("pre");p.className="err";p.textContent=String(e&&e.message||e);document.getElementById("root").appendChild(p);}' +
+    '});' +
+    '</script></body></html>';
+}
+
 function renderMath(root) {
   if (typeof renderMathInElement !== 'function') return;
   try {
@@ -332,7 +384,7 @@ function renderMath(root) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PROVIDERS, DEFAULT_SETTINGS, buildRequest, extractDelta, extractUsage, streamChat, escapeHtml, renderMarkdown, contentToText };
+  module.exports = { PROVIDERS, DEFAULT_SETTINGS, buildRequest, extractDelta, extractUsage, streamChat, escapeHtml, renderMarkdown, contentToText, extractArtifacts, buildArtifactDoc, ARTIFACT_LANGS };
 }
 
 if (typeof document !== 'undefined') {
@@ -349,6 +401,11 @@ function init() {
     menuBtn: $('#menu-btn'),
     sidebar: $('#sidebar'),
     sidebarBackdrop: $('#sidebar-backdrop'),
+    canvasPanel: $('#canvas-panel'),
+    canvasTitle: $('#canvas-title'),
+    canvasIframe: $('#canvas-iframe'),
+    canvasBtn: $('#canvas-btn'),
+    canvasClose: $('#canvas-close'),
     messages: $('#messages'),
     input: $('#input'),
     sendBtn: $('#send-btn'),
@@ -406,6 +463,9 @@ function init() {
   if (!state.conversations.some(c => c.id === state.currentId)) {
     state.currentId = state.conversations[0].id;
   }
+
+  let artifactRegistry = [];
+  function registerArtifact(id, lang, code) { artifactRegistry.push({ id, lang, code }); }
 
   function saveSettings() { localStorage.setItem('vibechat.settings', JSON.stringify(state.settings)); }
   function saveConversations() { localStorage.setItem('vibechat.conversations', JSON.stringify(state.conversations)); }
@@ -474,12 +534,13 @@ function init() {
     }
     const body = m.streaming && !m.content
       ? '<span class="typing">생각 중…</span>'
-      : renderMarkdown(m.content);
+      : renderMarkdown(m.content, registerArtifact);
     return '<div class="msg assistant"><div class="avatar">🤖</div><div><div class="bubble markdown">' + body + '</div>' + actions + usage + '</div></div>';
   }
 
   function renderMessages() {
     const conv = currentConv();
+    artifactRegistry = [];
     els.messages.innerHTML = '';
     if (!conv || !conv.messages.length) {
       const empty = document.createElement('div');
@@ -759,6 +820,26 @@ function init() {
     els.sidebarBackdrop.classList.toggle('show', open);
   });
   els.sidebarBackdrop.addEventListener('click', closeSidebar);
+
+  let currentArtifact = null;
+  function openCanvas(a) {
+    currentArtifact = a;
+    els.canvasTitle.textContent = 'React 캔버스 (' + a.lang + ')';
+    els.canvasIframe.srcdoc = buildArtifactDoc(a.code, a.lang);
+    els.canvasPanel.classList.add('open');
+  }
+  els.canvasBtn.addEventListener('click', () => {
+    els.canvasPanel.classList.add('open');
+    if (currentArtifact) {
+      openCanvas(currentArtifact);
+    } else {
+      els.canvasTitle.textContent = 'React 캔버스';
+      if (!els.canvasIframe.getAttribute('srcdoc')) {
+        els.canvasIframe.srcdoc = '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#555;padding:16px">AI가 <code>```jsx</code> 코드 블록을 출력하면, 블록의 <b>▶ 캔버스</b> 버튼으로 여기서 바로 실행해볼 수 있습니다. (컴포넌트는 default export, import 없이 단일 파일 기준)</body></html>';
+      }
+    }
+  });
+  els.canvasClose.addEventListener('click', () => els.canvasPanel.classList.remove('open'));
   els.closeSettings.addEventListener('click', () => els.modal.classList.add('hidden'));
   els.modal.addEventListener('click', (ev) => { if (ev.target === els.modal) els.modal.classList.add('hidden'); });
   els.saveSettings.addEventListener('click', saveSettingsFromModal);
@@ -781,6 +862,11 @@ function init() {
   els.messages.addEventListener('click', (ev) => {
     const btn = ev.target.closest('button');
     if (!btn) return;
+    if (btn.dataset.artifact) {
+      const a = artifactRegistry.find(x => x.id === btn.dataset.artifact);
+      if (a) openCanvas(a);
+      return;
+    }
     if (btn.dataset.copy === 'msg') {
       const bubble = btn.closest('.msg').querySelector('.bubble');
       copyText(bubble.innerText);
