@@ -315,6 +315,22 @@ function renderMarkdown(src) {
   return html;
 }
 
+function renderMath(root) {
+  if (typeof renderMathInElement !== 'function') return;
+  try {
+    renderMathInElement(root, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '\\[', right: '\\]', display: true },
+        { left: '\\(', right: '\\)', display: false },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false,
+      errorColor: '#e5646e'
+    });
+  } catch (e) {}
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { PROVIDERS, DEFAULT_SETTINGS, buildRequest, extractDelta, extractUsage, streamChat, escapeHtml, renderMarkdown, contentToText };
 }
@@ -480,6 +496,7 @@ function init() {
       }
       els.messages.appendChild(node);
     }
+    renderMath(els.messages);
     scrollBottom();
   }
 

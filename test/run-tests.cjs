@@ -220,6 +220,9 @@ async function main() {
     assert.ok(html.includes('<a href="https://example.com"'));
     assert.ok(html.includes('&lt;script&gt;'));
     assert.ok(!html.includes('<script>'));
+    const mathSrc = '수식: $E=mc^2$ 및 $$\\int_0^1 x\\,dx$$';
+    assert.ok(renderMarkdown(mathSrc).includes('$E=mc^2$'));
+    assert.ok(renderMarkdown(mathSrc).includes('$$\\int_0^1 x\\,dx$$'));
     assert.ok(html.includes('data-copy="code"'));
     assert.ok(html.includes('let a=1'), '미닫힌 코드 펜스도 렌더링');
     ok('마크다운: 헤딩/강조/리스트/인용/링크/코드(이스케이프) 정상');
