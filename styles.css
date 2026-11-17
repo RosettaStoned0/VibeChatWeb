@@ -65,13 +65,16 @@ body {
   font-size: 13px;
   padding: 2px 6px;
   border-radius: 6px;
-  visibility: hidden;
+  opacity: 0.55;
 }
 
-.conv-item:hover .conv-del { visibility: visible; }
+.conv-item:hover .conv-del, .conv-del:focus-visible { opacity: 1; }
 .conv-del:hover { color: var(--danger); background: rgba(229, 100, 110, 0.12); }
 
-.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+.btn.confirm, .conv-del.confirm { background: var(--danger); color: #fff; opacity: 1; }
+
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+.sidebar-footer .btn { flex: 1; }
 
 .menu-btn { display: none; padding: 6px 12px; font-size: 16px; }
 .sidebar-backdrop { display: none; }
