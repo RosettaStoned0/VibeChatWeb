@@ -345,6 +345,7 @@ function init() {
     convList: $('#conversation-list'),
     newChat: $('#new-chat-btn'),
     settingsBtn: $('#settings-btn'),
+    clearAll: $('#clear-all-btn'),
     menuBtn: $('#menu-btn'),
     sidebar: $('#sidebar'),
     sidebarBackdrop: $('#sidebar-backdrop'),
@@ -439,13 +440,18 @@ function init() {
       del.title = '대화 삭제';
       del.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        state.conversations = state.conversations.filter(x => x.id !== c.id);
-        if (state.currentId === c.id) {
-          if (state.conversations.length) state.currentId = state.conversations[0].id;
-          else { const nc = newConversation(); state.conversations.push(nc); state.currentId = nc.id; }
+        if (del.classList.contains('confirm')) {
+          resetConfirm(del);
+          state.conversations = state.conversations.filter(x => x.id !== c.id);
+          if (state.currentId === c.id) {
+            if (state.conversations.length) state.currentId = state.conversations[0].id;
+            else { const nc = newConversation(); state.conversations.push(nc); state.currentId = nc.id; }
+          }
+          saveConversations(); saveCurrent();
+          renderSidebar(); renderMessages();
+        } else {
+          armConfirm(del, '삭제?');
         }
-        saveConversations(); saveCurrent();
-        renderSidebar(); renderMessages();
       });
       item.appendChild(title); item.appendChild(del);
       item.addEventListener('click', () => {
@@ -721,6 +727,33 @@ function init() {
     els.sidebar.classList.remove('open');
     els.sidebarBackdrop.classList.remove('show');
   }
+
+  function armConfirm(btn, label) {
+    btn.dataset.label = btn.textContent;
+    btn.classList.add('confirm');
+    btn.textContent = label;
+    clearTimeout(btn._confirmTimer);
+    btn._confirmTimer = setTimeout(() => resetConfirm(btn), 3000);
+  }
+
+  function resetConfirm(btn) {
+    clearTimeout(btn._confirmTimer);
+    btn.classList.remove('confirm');
+    if (btn.dataset.label) btn.textContent = btn.dataset.label;
+  }
+
+  els.clearAll.addEventListener('click', () => {
+    if (els.clearAll.classList.contains('confirm')) {
+      resetConfirm(els.clearAll);
+      const nc = newConversation();
+      state.conversations = [nc];
+      state.currentId = nc.id;
+      saveConversations(); saveCurrent();
+      renderSidebar(); renderMessages(); closeSidebar();
+    } else {
+      armConfirm(els.clearAll, '정말 전체 삭제?');
+    }
+  });
   els.menuBtn.addEventListener('click', () => {
     const open = els.sidebar.classList.toggle('open');
     els.sidebarBackdrop.classList.toggle('show', open);
